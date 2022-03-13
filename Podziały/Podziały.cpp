@@ -93,44 +93,87 @@ int findFromEnd(unsigned int num, T* array, unsigned int arrayEndIndex) {
 
 template <class T>
 int findClosestTo(int num, T* array, unsigned int arrayEndIndex) {
+	if (arrayEndIndex == -1) return -1;
 	for (int i = arrayEndIndex; i >= 0; i--)
-		if (num-array[i]>=0)
+		if (num - array[i] >= 0)
 			return i;
 	return -1;
 }
 
+void printPartition(unsigned int k, unsigned int* partition, unsigned int partNumber) {
+	printf("%u+", k);
+	for (unsigned int i = 0; i < partNumber - 1; i++) {
+		printf("%u+", partition[i]);
+	}
+	printf("%u\n", partition[partNumber - 1]);
+}
+
 
 template <class T>
-void printPartition(unsigned int n, unsigned int k, T* primesArray, unsigned int primesNumber) {
+void removeLastNumberFromPartition(
+	unsigned int &partIndex, 
+	unsigned int* partition, 
+	int &largestPrimeIndex, 
+	unsigned int &rest,
+	T* primesArray, 
+	unsigned int primesNumber
+	) 
+{
+	partIndex--;
+	unsigned int lastPrime = partition[partIndex]; // pop last value
+	partition[partIndex] = 0;
+	// set largestPrime to be smaller than (but closest to) popped
+	largestPrimeIndex = findClosestTo(lastPrime-1, primesArray, primesNumber); 
+	rest += lastPrime;
+}
+
+template <class T>
+void findPartitions(unsigned int n, unsigned int k, T* primesArray, unsigned int primesNumber) {
 	int numberToPartition = n - k;
 	int primeMaxIndex = findPrime(k, primesArray, primesNumber);
 	if (primeMaxIndex == -1) return; // k is not a prime, skip
+
 	unsigned int partition[MAX_PRIME] = { }, partIndex = 0, rest = numberToPartition;
 	int largestPrimeIndex = primeMaxIndex;
+
+	// special cases
+	if (k == 2) {
+		if (numberToPartition % 2 == 1)
+			return;
+	}
+	if (numberToPartition < 2)
+		return;
+
 	while (rest != 0) {
 		// znajdujemy najwieksza mieszczaca sie w reszcie
 		largestPrimeIndex = findClosestTo(rest, primesArray, largestPrimeIndex);
-		if (largestPrimeIndex == -1) { // todo
-			printf("PROBLEM 1\n");
-			break;
-		}	
+		if (largestPrimeIndex == -1) { // rest is equal to 1
+			if (partition[0] == 2) // all of combinations is used
+				break;
+			removeLastNumberFromPartition(partIndex, partition, largestPrimeIndex, rest, primesArray, primesNumber);
+			continue;
+			//break;
+		}
 		partition[partIndex] = primesArray[largestPrimeIndex];
 		partIndex++;
 		rest -= primesArray[largestPrimeIndex];
+
+		if (rest == 0) {
+			printPartition(k, partition, partIndex);
+			removeLastNumberFromPartition(partIndex, partition, largestPrimeIndex, rest, primesArray, primesNumber);
+			if (largestPrimeIndex == -1) { // there is no smaller, end this try, maybe while?
+				// i need to figure out another condition, bcs if last digit is 2
+				// itll break
+				if (partIndex == 0) // k + 2 or 3 is the only solution
+					break;
+			}
+		}
 	}
-
-	printf("%u+", k);
-	for (unsigned int i=0; i < partIndex-1; i++) {
-		printf("%u+", partition[i]);
-	}
-	printf("%u\n", partition[partIndex-1]);
-
-
 }
 
 
 int main() {
-	
+
 	unsigned int primesNumber;
 	unsigned short primes[MAX_PRIME];
 	generatePrimes(primes, MAX_PRIME, &primesNumber);
@@ -141,7 +184,7 @@ int main() {
 
 	for (int i = 0; i < partitionsToDo; i++) {
 		scanf_s("%hu %hu", &n, &k);
-		printPartition(n, k, primes, primesNumber);
+		findPartitions(n, k, primes, primesNumber);
 	}
 
 }
