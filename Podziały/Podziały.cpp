@@ -1,38 +1,4 @@
-﻿// Podziały.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
-#include <iostream>
-
-#define MAX_PRIME 1 << 8 // byte = 8 bits
-
-template <class T>
-void generatePrimes(T* tab, int maxNumber, unsigned int* primesNumber) {
-	int index = 0;
-	for (int toCheck = 2; toCheck <= maxNumber; toCheck++) {
-		bool isPrime = true;
-		for (int checker = 2; checker <= toCheck / 2; checker++) {
-			if (toCheck % checker == 0) {
-				isPrime = false;
-				break;
-			}
-		}
-		if (isPrime) {
-			tab[index] = toCheck;
-			index++;
-		}
-	}
-	*primesNumber = index;
-}
-
-template <class T>
-void printTab(T* tab, int lastIndex) {
-	for (int i = 0; i < lastIndex; i++) {
-		printf("%d, ", tab[i]);
-	}
-	printf("\n");
-}
-
-// wypelniam tablice najmniejszymi lp (czyli 2) az numberToPartition odjąć suma tablicy
+﻿// wypelniam tablice najmniejszymi lp (czyli 2) az numberToPartition odjąć suma tablicy
 // będzie mniejsza niż dwa. 
 // jeżeli to odejmowanie == 0, to mam pierwszego kandydata,
 // w innym przypadku usuwam dwójkę i wstawiam 3
@@ -64,6 +30,38 @@ void printTab(T* tab, int lastIndex) {
 // 10 = 5 + 2
 // 10 = 5
 // 10 = 3 + 3 + 3 (r=1)
+
+#include <iostream>
+
+#define MAX_PRIME 1 << 8 // byte = 8 bits
+
+template <class T>
+void generatePrimes(T* tab, int maxNumber, unsigned int* primesNumber) {
+	int index = 0;
+	for (T toCheck = 2; toCheck <= maxNumber; toCheck++) {
+		bool isPrime = true;
+		for (int checker = 2; checker <= toCheck / 2; checker++) {
+			if (toCheck % checker == 0) {
+				isPrime = false;
+				break;
+			}
+		}
+		if (isPrime) {
+			tab[index] = toCheck;
+			index++;
+		}
+	}
+	*primesNumber = index;
+}
+
+template <class T>
+void printTab(T* tab, int lastIndex) {
+	for (int i = 0; i < lastIndex; i++) {
+		printf("%d, ", tab[i]);
+	}
+	printf("\n");
+}
+
 
 template <class T>
 int findPrime(unsigned int num, T* primesArray, unsigned int primesNumber) {
@@ -100,32 +98,46 @@ int findClosestTo(int num, T* array, unsigned int arrayEndIndex) {
 	return -1;
 }
 
-void printPartition(unsigned int k, unsigned int* partition, unsigned int partNumber) {
-	printf("%u+", k);
-	for (unsigned int i = 0; i < partNumber - 1; i++) {
-		printf("%u+", partition[i]);
+template <class T>
+void printPartitions(unsigned int k, T* output, unsigned int output_i) {
+	int partSize = 0;
+	for (int i = output_i - 2; i >= 0; i--) {
+		if (output[i] != 0)
+			partSize++;
+		else {
+			printf("%u+", k);
+			int j = i + 1;
+			while (j != i + 1 + partSize) {
+				if (output[j + 1] != 0)
+					printf("%u+", output[j]);
+				else
+					printf("%u\n", output[j]);
+				j++;
+			}
+			partSize = 0;
+		}
 	}
-	printf("%u\n", partition[partNumber - 1]);
 }
 
 
 template <class T>
 void removeLastNumberFromPartition(
-	unsigned int &partIndex, 
-	unsigned int* partition, 
-	int &largestPrimeIndex, 
-	unsigned int &rest,
-	T* primesArray, 
+	unsigned int& partIndex,
+	unsigned int* partition,
+	int& largestPrimeIndex,
+	unsigned int& rest,
+	T* primesArray,
 	unsigned int primesNumber
-	) 
+)
 {
 	partIndex--;
 	unsigned int lastPrime = partition[partIndex]; // pop last value
 	partition[partIndex] = 0;
 	// set largestPrime to be smaller than (but closest to) popped
-	largestPrimeIndex = findClosestTo(lastPrime-1, primesArray, primesNumber); 
+	largestPrimeIndex = findClosestTo(lastPrime - 1, primesArray, primesNumber);
 	rest += lastPrime;
 }
+
 
 template <class T>
 void findPartitions(unsigned int n, unsigned int k, T* primesArray, unsigned int primesNumber) {
@@ -134,6 +146,7 @@ void findPartitions(unsigned int n, unsigned int k, T* primesArray, unsigned int
 	if (primeMaxIndex == -1) return; // k is not a prime, skip
 
 	unsigned int partition[MAX_PRIME] = { }, partIndex = 0, rest = numberToPartition;
+	unsigned int output[MAX_PRIME] = { 0 }, output_i = 1;
 	int largestPrimeIndex = primeMaxIndex;
 
 	// special cases
@@ -141,11 +154,14 @@ void findPartitions(unsigned int n, unsigned int k, T* primesArray, unsigned int
 		if (numberToPartition % 2 == 1)
 			return;
 	}
-	if (numberToPartition < 2)
+	if (numberToPartition < 2) {
+		if (numberToPartition == 0)
+			printf("%u\n", k);
 		return;
-
+	}
+	
 	while (rest != 0) {
-		// znajdujemy najwieksza mieszczaca sie w reszcie
+		// find largest within rest
 		largestPrimeIndex = findClosestTo(rest, primesArray, largestPrimeIndex);
 		if (largestPrimeIndex == -1) { // rest is equal to 1
 			if (partition[0] == 2) // all of combinations is used
@@ -159,7 +175,13 @@ void findPartitions(unsigned int n, unsigned int k, T* primesArray, unsigned int
 		rest -= primesArray[largestPrimeIndex];
 
 		if (rest == 0) {
-			printPartition(k, partition, partIndex);
+			for (unsigned int i = 0; i < partIndex; i++) {
+				output[output_i + i] = partition[i];
+			}
+			output_i += partIndex + 1;
+			//output[output_i-1] = 0; // 0 informs that its end of partition
+
+			// printPartition(k, partition, partIndex);
 			removeLastNumberFromPartition(partIndex, partition, largestPrimeIndex, rest, primesArray, primesNumber);
 			if (largestPrimeIndex == -1) { // there is no smaller, end this try, maybe while?
 				// i need to figure out another condition, bcs if last digit is 2
@@ -169,15 +191,16 @@ void findPartitions(unsigned int n, unsigned int k, T* primesArray, unsigned int
 			}
 		}
 	}
+
+	printPartitions(k, output, output_i);
+
 }
 
 
 int main() {
-
 	unsigned int primesNumber;
 	unsigned short primes[MAX_PRIME];
 	generatePrimes(primes, MAX_PRIME, &primesNumber);
-	printTab(primes, primesNumber);
 
 	unsigned short partitionsToDo, n, k;
 	scanf_s("%hu", &partitionsToDo);
@@ -186,6 +209,5 @@ int main() {
 		scanf_s("%hu %hu", &n, &k);
 		findPartitions(n, k, primes, primesNumber);
 	}
-
 }
 
